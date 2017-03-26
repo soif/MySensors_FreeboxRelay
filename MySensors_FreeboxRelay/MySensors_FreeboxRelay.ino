@@ -87,8 +87,8 @@ byte				current_mode		=1;			// 0=off, 1=on, 2=reboot,3=firmware
 boolean				init_msg_sent		=false;		// did we sent the init message?
 byte				sensors_count		=0;			// number of DS18B20 connected
 
-OneWire 			oneWire(PIN_ONEWIRE);
-DallasTemperature 	dallas(&oneWire);
+OneWire 			owBus(PIN_ONEWIRE);
+DallasTemperature 	owTempBus(&owBus);
 
 MyMessage 			msgRelay	(CHILD_ID_RELAY,	V_STATUS);
 MyMessage 			msgTemp		(CHILD_ID_TEMP,		V_PERCENTAGE);
@@ -108,8 +108,8 @@ void before() {
 	digitalWriteFast(PIN_RELAY, RELAY_ON);
 
 	//dallas begin
-	dallas.begin();
-	sensors_count=dallas.getDeviceCount();
+	owTempBus.begin();
+	sensors_count=owTempBus.getDeviceCount();
 
 	listAllOwSensors();
 
@@ -152,7 +152,7 @@ void loop() {
 
 			reportsTemperatures();
 			force_report=false;
-			DEBUG_PRINTLN("");
+			//DEBUG_PRINTLN("");
 		}
 		//reset mode when done
 		if( ( (long) ( millis() - next_reboot)  >= 0) && current_mode > 1 ){
@@ -318,8 +318,8 @@ void reportsMode(unsigned int mode){
 
 // --------------------------------------------------------------------
 void reportsTemperatures(){
-	dallas.requestTemperatures();
-	wait( dallas.millisToWaitForConversion(dallas.getResolution()) +5 ); // make sure we get the latest temps
+	owTempBus.requestTemperatures();
+	wait( owTempBus.millisToWaitForConversion(owTempBus.getResolution()) +5 ); // make sure we get the latest temps
 
 	// temperatures sensors
 	for (byte i = 0; i < NUM_SENSORS_USED; i++) {
@@ -327,7 +327,7 @@ void reportsTemperatures(){
 		DEBUG_PRINT("# - Sensor ");
 		DEBUG_PRINT(sensors_used[i].child_id);
 		DEBUG_PRINT(" : ");
-		float temp = formatTemperature(dallas.getTempC(sensors_used[i].address));
+		float temp = formatTemperature(owTempBus.getTempC(sensors_used[i].address));
 		if(temp==999){
 			DEBUG_PRINT("[ERR]");
 		}
@@ -367,19 +367,19 @@ void listAllOwSensors(){
 	DEBUG_PRINTDEC(sensors_count);
 	DEBUG_PRINTLN(" sensors :");
 
-	dallas.requestTemperatures();
-	delay( dallas.millisToWaitForConversion(dallas.getResolution()) +5 ); // make sure we get the latest temps
+	owTempBus.requestTemperatures();
+	delay( owTempBus.millisToWaitForConversion(owTempBus.getResolution()) +5 ); // make sure we get the latest temps
 
 	if(sensors_count > 0){
 		DeviceAddress id;
 		for (byte i = 0; i < sensors_count; i++) {
-			dallas.getAddress(id, i);
+			owTempBus.getAddress(id, i);
 			DEBUG_PRINT(" - [ ");
 			DEBUG_PRINT(i);
 			DEBUG_PRINT(" ] , ");
 			printAddress(id);
 			DEBUG_PRINT(" : Temp= ");
-			float temp = formatTemperature(dallas.getTempC(id));
+			float temp = formatTemperature(owTempBus.getTempC(id));
 			if(temp !=999){
 				DEBUG_PRINT(temp);
 			}
