@@ -29,19 +29,23 @@
 #define MY_TRANSPORT_SANITY_CHECK									// check if transport is available
 #define MY_TRANSPORT_SANITY_CHECK_INTERVAL_MS	(15*60*1000ul)		// how often to  check if transport is available (already set as default)
 #define MY_TRANSPORT_TIMEOUT_EXT_FAILURE_STATE	(5*	60*1000ul)	//  how often to reconnect if no transport
-#define MY_REPEATER_FEATURE										// set as Repeater
+//#define MY_REPEATER_FEATURE										// set as Repeater
 
-#define REPORT_TIME		(	1*60) 	// report sensors every X seconds
-#define FORCE_REPORT		10 				// force report every X cycles
+#define REPORT_TIME			(2*60) 				// report sensors every X seconds
+#define FORCE_REPORT		10 				// force report ALL every X cycles
+
+#define FBX_TIME_REBOOT		(40+60)		// prevent another reboot command before this time (seconds) elapsed
+#define FBX_TIME_FIRMWARE	(10*60)		// prevent another firmware command before this time (seconds) elapsed
+
+#define FBX_DUR_ON		(1500)			// duration for relay ON
+#define FBX_DUR_OFF		(500)			// duration for relay OFF
 
 #define RELAY_ON		true				// polarity when relay is in NC position
 #define RELAY_OFF		false				// polarity when relay is in NO position
 
-#define NUM_TEMP		1					// bumber of temperature sensors DS18B20
-
-
 #define CHILD_ID_RELAY	0
 #define CHILD_ID_TEMP	1
+
 
 // includes ####################################################################
 #include "own_debug.h"
@@ -60,20 +64,34 @@
 
 
 // Variables ###################################################################
-boolean				init_msg_sent		=false;			//did we sent the init message?
+struct ow_sensor {
+	byte child_id;
+	DeviceAddress address;
+	String name;
+	float last_temp;
+};
 
+#define NUM_SENSORS_USED	1						// number of DS18B20 temperature sensors USED (to create the array)
+ow_sensor	sensors_used[NUM_SENSORS_USED]={
+	{	CHILD_ID_TEMP ,	{0x28, 0x19, 0xF0, 0x4D, 0x05, 0x00, 0x00, 0x3D}, "Garage", -1000}
+};
 
-unsigned long 		next_report 		= 0;		// last temperature report time : start 3s after boot
-unsigned int		cycles_count		= 0;
+unsigned int		cycles_count		= 0;		// cycles performed
 boolean				force_report		= true;		// force report
+unsigned long 		next_report 		= 0;		// last temperature report time : start 3s after boot
 
-float				last_temp[NUM_TEMP];
+unsigned long		next_reboot			=0;			// next time reboot is allowed
+boolean				force_reboot		=false;		// allow bypass reboot mask time
+byte				current_mode		=1;			// 0=off, 1=on, 2=reboot,3=firmware
+
+boolean				init_msg_sent		=false;		// did we sent the init message?
+byte				sensors_count		=0;			// number of DS18B20 connected
 
 OneWire 			oneWire(PIN_ONEWIRE);
 DallasTemperature 	dallas(&oneWire);
 
 MyMessage 			msgRelay	(CHILD_ID_RELAY,	V_STATUS);
-MyMessage 			msgTemp		(CHILD_ID_TEMP,V_TEMP);
+MyMessage 			msgTemp		(CHILD_ID_TEMP,		V_PERCENTAGE);
 
 
 // #############################################################################
@@ -89,17 +107,22 @@ void before() {
 	pinMode(PIN_RELAY,	OUTPUT);
 	digitalWriteFast(PIN_RELAY, RELAY_ON);
 
+	//dallas begin
 	dallas.begin();
+	sensors_count=dallas.getDeviceCount();
+
+	listAllOwSensors();
 
 	DEBUG_PRINTLN("+++++Before END  +++++");
+	DEBUG_PRINTLN("");
 }
 
 // --------------------------------------------------------------------
 void setup() {
 	DEBUG_PRINTLN("");
 	DEBUG_PRINTLN("----Setup START-------");
-
 	DEBUG_PRINTLN("----Setup END  -------");
+	DEBUG_PRINTLN("");
 }
 
 
@@ -108,29 +131,37 @@ void loop() {
 	SendInitialtMsg();
 
 	if(init_msg_sent){
+		//report temperatures
 		if( (long) ( millis() - next_report)  >= 0 ){
 			next_report +=  (long) REPORT_TIME * 1000 ;
 			cycles_count++;
 
-			DEBUG_PRINTLN("");
-			DEBUG_PRINTLN("#############################");
-			DEBUG_PRINT("# (");
+			DEBUG_PRINT("### (");
 			DEBUG_PRINT(cycles_count);
 			DEBUG_PRINT(") ");
 
 			if(cycles_count >= FORCE_REPORT ){
-				DEBUG_PRINTLN("Forcing ALL reports !!!");
+				DEBUG_PRINT("Forcing ALL reports !!! ");
 				force_report=true;
 				cycles_count=0;
 			}
 			else{
-				DEBUG_PRINTLN("Reporting changed :");
+				DEBUG_PRINT("Reporting changed ");
 			}
-			//DEBUG_PRINTLN("");
+			DEBUG_PRINTLN("#############################");
 
 			reportsTemperatures();
 			force_report=false;
+			DEBUG_PRINTLN("");
 		}
+		//reset mode when done
+		if( ( (long) ( millis() - next_reboot)  >= 0) && current_mode > 1 ){
+			DEBUG_PRINTLN("# Reporting End of Locked time: back to mode 1 ###########");
+			reportsMode(1);
+			current_mode=1;
+			DEBUG_PRINTLN("");
+		}
+
 	}
 }
 
@@ -152,21 +183,138 @@ void presentation(){
 	DEBUG_PRINTLN("");
 	DEBUG_PRINTLN("*** Presentation START ******");
 	sendSketchInfo(INFO_NAME ,	INFO_VERS );
-	present(CHILD_ID_RELAY,		S_LIGHT);
+	present(CHILD_ID_RELAY,		S_DIMMER);
 
 	// temperatures sensors
-	for (int counter = 0; counter < NUM_TEMP; counter++) {
+	for (int counter = 0; counter < sensors_count; counter++) {
 		present(CHILD_ID_TEMP + counter,		S_TEMP);
 	}
 
 	DEBUG_PRINTLN("*** Presentation END ******");
+	DEBUG_PRINTLN("");
 }
 
 // --------------------------------------------------------------------
-void receive(const MyMessage &msg){
+void receive(const MyMessage &message){
+	if (message.isAck() ) {
+		DEBUG_PRINTLN(" <-- ACK from gateway IGNORED !");
+		DEBUG_PRINTLN("");
+		return;
+	}
+
+	if (message.type == V_PERCENTAGE) {
+		DEBUG_PRINT("#  <-- Receiving mode : ");
+		DEBUG_PRINTLN(message.getByte());
+		switchMode(message.getByte());
+		DEBUG_PRINTLN("");
+   }
+
 }
 
 
+// --------------------------------------------------------------------
+void switchMode(byte mode){
+	DEBUG_PRINT("# Switching mode : ");
+	DEBUG_PRINTLN(mode);
+
+	if(mode == 0){
+		freeboxOff();
+	}
+	else if(mode == 1){
+		freeboxOn();
+	}
+	else if(mode == 2){
+		freeboxRebootOne();
+	}
+	else if(mode == 3){
+		freeboxFirmware();
+	}
+}
+
+
+// --------------------------------------------------------------------
+boolean freeboxReboot(byte count=1, unsigned long mask=0){
+	unsigned long time_remaining=0;
+	//http://playground.arduino.cc/Code/TimingRollover
+	if( (long) ( millis() - next_reboot)  >= 0 ){
+		next_reboot += millis() + mask ;
+	}
+	else{
+		time_remaining=( next_reboot - millis() ) /1000;
+	}
+
+	DEBUG_PRINT("# Rebooting: count=");
+	DEBUG_PRINT(count);
+	DEBUG_PRINT(", remaining=");
+	DEBUG_PRINT(time_remaining);
+	DEBUG_PRINT(" sec. ");
+
+	if( (time_remaining > 0 ) && !force_reboot){
+		DEBUG_PRINTLN(" => CANCELED !");
+		return false;
+	}
+	DEBUG_PRINT(" => ");
+
+	for (int i = 0; i < count; i++) {
+		DEBUG_PRINT(i+1);
+		//set OFF
+		digitalWrite(PIN_RELAY, RELAY_OFF);
+		wait(FBX_DUR_OFF);
+		DEBUG_PRINT(". ");
+		//sef ON
+		digitalWrite(PIN_RELAY, RELAY_ON);
+		if(count > 1){
+			wait(FBX_DUR_ON);
+		}
+	}
+	DEBUG_PRINTLN("  REBOOTED!");
+	return true;
+}
+
+// --------------------------------------------------------------------
+void freeboxOff(){
+	if(current_mode > 1){
+		unsigned long time_remaining=( next_reboot - millis() ) /1000;
+		DEBUG_PRINT("# Currently BUSY doing mode : ");
+		DEBUG_PRINT(current_mode);
+		DEBUG_PRINT(". Please wait ");
+		DEBUG_PRINT(time_remaining);
+		DEBUG_PRINTLN(" sec. , then try again!");
+		return;
+	}
+	current_mode = 0;
+	digitalWrite(PIN_RELAY, RELAY_OFF);
+}
+
+// --------------------------------------------------------------------
+void freeboxOn(){
+	current_mode = 1;
+	digitalWrite(PIN_RELAY, RELAY_ON);
+}
+
+// --------------------------------------------------------------------
+boolean freeboxRebootOne(){
+	if( freeboxReboot(1, FBX_TIME_REBOOT * 1000ul) ){
+		current_mode=2;
+		return true;
+	}
+	return false;
+}
+
+// --------------------------------------------------------------------
+boolean freeboxFirmware(){
+	if( freeboxReboot(5, FBX_TIME_FIRMWARE * 1000ul) ){
+		current_mode=3;
+		return true;
+	}
+	return false;
+}
+
+
+// --------------------------------------------------------------------
+void reportsMode(unsigned int mode){
+	send(msgRelay.set(mode), true);
+}
 
 // --------------------------------------------------------------------
 void reportsTemperatures(){
@@ -174,26 +322,129 @@ void reportsTemperatures(){
 	wait( dallas.millisToWaitForConversion(dallas.getResolution()) +5 ); // make sure we get the latest temps
 
 	// temperatures sensors
-	for (int counter = 0; counter < NUM_TEMP; counter++) {
-		float temp = dallas.getTempCByIndex(counter);
+	for (byte i = 0; i < NUM_SENSORS_USED; i++) {
 
-		DEBUG_PRINT("# Reading Temperature ");
-		DEBUG_PRINT(counter);
+		DEBUG_PRINT("# - Sensor ");
+		DEBUG_PRINT(sensors_used[i].child_id);
 		DEBUG_PRINT(" : ");
-		DEBUG_PRINT(temp);
+		float temp = formatTemperature(dallas.getTempC(sensors_used[i].address));
+		if(temp==999){
+			DEBUG_PRINT("[ERR]");
+		}
+		else{
+			DEBUG_PRINT(temp);
+		}
 		DEBUG_PRINT(" ( last = ");
-		DEBUG_PRINT(last_temp[counter]);
+		DEBUG_PRINT(sensors_used[i].last_temp);
 		DEBUG_PRINT(" )");
 
-		if (! isnan(temp)) {
-			temp = ( (int) (temp * 10 ) ) / 10.0 ; //rounded to 1 dec
-			if ( (temp != last_temp[counter] || force_report ) && temp != -127.0 && temp != 85.0) {
-				DEBUG_PRINTLN("  ==> Reporting !");
-				msgTemp.setSensor(CHILD_ID_TEMP + counter);
+		if ( temp !=999 && (temp != sensors_used[i].last_temp || force_report ) ) {
+				DEBUG_PRINTLN("  --> Reporting :");
+				msgTemp.setSensor(sensors_used[i].child_id);
 				send(msgTemp.set(temp, 1), false);
-				last_temp[counter] = temp;
-			}
+				sensors_used[i].last_temp = temp;
 		}
 		DEBUG_PRINTLN("");
 	}
+}
+
+// --------------------------------------------------------------------
+float formatTemperature(float temp){
+	if (! isnan(temp)) {
+		temp = ( (int) (temp * 10 ) ) / 10.0 ; //rounded to 1 dec
+		if ( temp != -127.0 && temp != 85.0) {
+			return temp;
+		}
+	}
+	return 999;	//error
+}
+
+// --------------------------------------------------------------------
+void listAllOwSensors(){
+
+	//DEBUG_PRINTLN("");
+	DEBUG_PRINT("# Found ");
+	DEBUG_PRINTDEC(sensors_count);
+	DEBUG_PRINTLN(" sensors :");
+
+	dallas.requestTemperatures();
+	delay( dallas.millisToWaitForConversion(dallas.getResolution()) +5 ); // make sure we get the latest temps
+
+	if(sensors_count > 0){
+		DeviceAddress id;
+		for (byte i = 0; i < sensors_count; i++) {
+			dallas.getAddress(id, i);
+			DEBUG_PRINT(" - [ ");
+			DEBUG_PRINT(i);
+			DEBUG_PRINT(" ] , ");
+			printAddress(id);
+			DEBUG_PRINT(" : Temp= ");
+			float temp = formatTemperature(dallas.getTempC(id));
+			if(temp !=999){
+				DEBUG_PRINT(temp);
+			}
+			else{
+				DEBUG_PRINT("ERR");
+			}
+
+			DEBUG_PRINT(" ==> ");
+			ow_sensor s= selectOwSensor(id);
+			if(s.child_id !=0){
+				DEBUG_PRINT("Child ");
+				DEBUG_PRINT(s.child_id);
+				DEBUG_PRINT(" , ");
+				DEBUG_PRINT(s.name);
+			}
+			else{
+				DEBUG_PRINT("......... UNUSED !");
+			}
+
+			DEBUG_PRINTLN("");
+		}
+	}
+}
+
+// --------------------------------------------------------------------
+ow_sensor selectOwSensor(DeviceAddress address){
+	for (byte i = 0; i < NUM_SENSORS_USED; i++) {
+		if(equalsDeviceAddress(sensors_used[i].address, address)){
+			return sensors_used[i];
+		}
+	}
+	ow_sensor s={0, "0",""};
+	return s;
+}
+
+// --------------------------------------------------------------------
+void printAddress(DeviceAddress deviceAddress){
+	for (byte i = 0; i < 8; i++) {
+		// zero pad the address if necessary
+		if (deviceAddress[i] < 16) {
+			DEBUG_PRINT("0");
+		}
+		DEBUG_PRINTHEX(deviceAddress[i]);
+	}
+	DEBUG_PRINT(" {");
+	for (byte i = 0; i < 8; i++) {
+		// zero pad the address if necessary
+		DEBUG_PRINT("0x");
+		if (deviceAddress[i] < 16){
+			DEBUG_PRINT("0");
+		}
+		DEBUG_PRINTHEX(deviceAddress[i]);
+		if( i < 7){
+			DEBUG_PRINT(", ");
+		}
+	}
+	DEBUG_PRINT(" }");
+}
+
+// --------------------------------------------------------------------
+boolean equalsDeviceAddress(DeviceAddress a, DeviceAddress b){
+	for (byte i = 0; i < 8; i++) {
+		if(a[i] != b[i]){
+			return false;
+		}
+	}
+	return true;
 }
