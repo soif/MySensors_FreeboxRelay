@@ -188,7 +188,7 @@ void presentation(){
 	present(CHILD_ID_RELAY,		S_DIMMER);
 
 	// temperatures sensors
-	for (int i = 0; i < sensors_count; i++) {
+	for (int i = 0; i < NUM_SENSORS_USED; i++) {
 		present(CHILD_ID_TEMP + i,		S_TEMP);
 	}
 
