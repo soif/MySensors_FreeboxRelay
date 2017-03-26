@@ -142,6 +142,7 @@ void loop() {
 
 			if(cycles_count >= FORCE_REPORT ){
 				DEBUG_PRINT("Forcing ALL reports !!! ");
+				reportsMode(current_mode);
 				force_report=true;
 				cycles_count=0;
 			}
@@ -343,6 +344,9 @@ void reportsTemperatures(){
 				msgTemp.setSensor(sensors_used[i].child_id);
 				send(msgTemp.set(temp, 1), false);
 				sensors_used[i].last_temp = temp;
+		}
+		else{
+			DEBUG_PRINTLN("");
 		}
 		DEBUG_PRINTLN("");
 	}
