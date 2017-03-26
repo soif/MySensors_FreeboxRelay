@@ -73,7 +73,7 @@ struct ow_sensor {
 
 #define NUM_SENSORS_USED	1						// number of DS18B20 temperature sensors USED (to create the array)
 ow_sensor	sensors_used[NUM_SENSORS_USED]={
-	{	CHILD_ID_TEMP ,	{0x28, 0x19, 0xF0, 0x4D, 0x05, 0x00, 0x00, 0x3D}, "Garage", -1000}
+	{	CHILD_ID_TEMP + 0 ,	{0x28, 0x19, 0xF0, 0x4D, 0x05, 0x00, 0x00, 0x3D}, "Garage", -1000}
 };
 
 unsigned int		cycles_count		= 0;		// cycles performed
@@ -90,8 +90,8 @@ byte				sensors_count		=0;			// number of DS18B20 connected
 OneWire 			owBus(PIN_ONEWIRE);
 DallasTemperature 	owTempBus(&owBus);
 
-MyMessage 			msgRelay	(CHILD_ID_RELAY,	V_STATUS);
-MyMessage 			msgTemp		(CHILD_ID_TEMP,		V_PERCENTAGE);
+MyMessage 			msgRelay	(CHILD_ID_RELAY,	V_PERCENTAGE);
+MyMessage 			msgTemp		(CHILD_ID_TEMP,		V_TEMP);
 
 
 // #############################################################################
@@ -184,11 +184,12 @@ void presentation(){
 	DEBUG_PRINTLN("");
 	DEBUG_PRINTLN("*** Presentation START ******");
 	sendSketchInfo(INFO_NAME ,	INFO_VERS );
+
 	present(CHILD_ID_RELAY,		S_DIMMER);
 
 	// temperatures sensors
-	for (int counter = 0; counter < sensors_count; counter++) {
-		present(CHILD_ID_TEMP + counter,		S_TEMP);
+	for (int i = 0; i < sensors_count; i++) {
+		present(CHILD_ID_TEMP + i,		S_TEMP);
 	}
 
 	DEBUG_PRINTLN("*** Presentation END ******");
