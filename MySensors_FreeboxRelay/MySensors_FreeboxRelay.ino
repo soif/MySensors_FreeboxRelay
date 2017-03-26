@@ -213,26 +213,29 @@ void receive(const MyMessage &message){
 
 }
 
-
 // --------------------------------------------------------------------
 void switchMode(byte mode){
 	DEBUG_PRINT("# Switching mode : ");
 	DEBUG_PRINTLN(mode);
 
+	boolean ok;
 	if(mode == 0){
-		freeboxOff();
+		ok=freeboxOff();
 	}
 	else if(mode == 1){
-		freeboxOn();
+		ok=freeboxOn();
 	}
 	else if(mode == 2){
-		freeboxRebootOne();
+		ok=freeboxRebootOne();
 	}
 	else if(mode == 3){
-		freeboxFirmware();
+		ok=freeboxFirmware();
+	}
+
+	if(ok){
+		reportsMode(mode);
 	}
 }
-
 
 // --------------------------------------------------------------------
 boolean freeboxReboot(byte count=1, unsigned long mask=0){
@@ -274,7 +277,7 @@ boolean freeboxReboot(byte count=1, unsigned long mask=0){
 }
 
 // --------------------------------------------------------------------
-void freeboxOff(){
+boolean freeboxOff(){
 	if(current_mode > 1){
 		unsigned long time_remaining=( next_reboot - millis() ) /1000;
 		DEBUG_PRINT("# Currently BUSY doing mode : ");
@@ -282,16 +285,18 @@ void freeboxOff(){
 		DEBUG_PRINT(". Please wait ");
 		DEBUG_PRINT(time_remaining);
 		DEBUG_PRINTLN(" sec. , then try again!");
-		return;
+		return false;
 	}
 	current_mode = 0;
 	digitalWrite(PIN_RELAY, RELAY_OFF);
+	return true;
 }
 
 // --------------------------------------------------------------------
-void freeboxOn(){
+boolean freeboxOn(){
 	current_mode = 1;
 	digitalWrite(PIN_RELAY, RELAY_ON);
+	return true;
 }
 
 // --------------------------------------------------------------------
@@ -311,7 +316,6 @@ boolean freeboxFirmware(){
 	}
 	return false;
 }
-
 
 // --------------------------------------------------------------------
 void reportsMode(unsigned int mode){
@@ -366,7 +370,6 @@ float formatTemperature(float temp){
 
 // --------------------------------------------------------------------
 void listAllOwSensors(){
-
 	//DEBUG_PRINTLN("");
 	DEBUG_PRINT("# Found ");
 	DEBUG_PRINTDEC(sensors_count);
