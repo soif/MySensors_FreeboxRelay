@@ -17,7 +17,7 @@
 
 
 // Define ######################################################################
-#define INFO_NAME "Freebox Relay"
+#define INFO_NAME "FreeboxRelay"
 #define INFO_VERS "2.11.00"
 
 // MySensors
@@ -58,24 +58,13 @@
 #include <OneWire.h>
 #include <DallasTemperature.h>
 
+
 // Pins ########################################################################
 #define PIN_RELAY		5		// Relay pin
 #define PIN_ONEWIRE		3		// OneWire (DS18B20) Bus
 
 
 // Variables ###################################################################
-struct ow_sensor {
-	byte child_id;
-	DeviceAddress address;
-	String name;
-	float last_temp;
-};
-
-#define NUM_SENSORS_USED	1						// number of DS18B20 temperature sensors USED (to create the array)
-ow_sensor	sensors_used[NUM_SENSORS_USED]={
-	{	CHILD_ID_TEMP + 0 ,	{0x28, 0x19, 0xF0, 0x4D, 0x05, 0x00, 0x00, 0x3D}, "Garage", -1000}
-};
-
 unsigned int		cycles_count		= 0;		// cycles performed
 boolean				force_report		= true;		// force report
 unsigned long 		next_report 		= 0;		// last temperature report time : start 3s after boot
@@ -92,6 +81,23 @@ DallasTemperature 	owTempBus(&owBus);
 
 MyMessage 			msgRelay	(CHILD_ID_RELAY,	V_PERCENTAGE);
 MyMessage 			msgTemp		(CHILD_ID_TEMP,		V_TEMP);
+
+struct ow_sensor {
+	byte child_id;
+	DeviceAddress address;
+	String name;
+	float last_temp;
+};
+
+
+// User Config #################################################################
+
+// rename "config.default.h" to "config.h", and fill it with your own sensor addresses
+#if __has_include("config.h")
+#include "config.h"
+#else
+#include "config.default.h"
+#endif
 
 
 // #############################################################################
@@ -191,7 +197,6 @@ void presentation(){
 	for (int i = 0; i < NUM_SENSORS_USED; i++) {
 		present(CHILD_ID_TEMP + i,		S_TEMP);
 	}
-
 	DEBUG_PRINTLN("*** Presentation END ******");
 	DEBUG_PRINTLN("");
 }
@@ -210,7 +215,6 @@ void receive(const MyMessage &message){
 		switchMode(message.getByte());
 		DEBUG_PRINTLN("");
    }
-
 }
 
 // --------------------------------------------------------------------
@@ -432,10 +436,10 @@ void printAddress(DeviceAddress deviceAddress){
 		}
 		DEBUG_PRINTHEX(deviceAddress[i]);
 	}
-	DEBUG_PRINT(" {");
+	DEBUG_PRINT(" { ");
 	for (byte i = 0; i < 8; i++) {
-		// zero pad the address if necessary
 		DEBUG_PRINT("0x");
+		// zero pad the address if necessary
 		if (deviceAddress[i] < 16){
 			DEBUG_PRINT("0");
 		}
