@@ -29,7 +29,7 @@
 #define MY_TRANSPORT_SANITY_CHECK								// check if transport is available
 #define MY_TRANSPORT_SANITY_CHECK_INTERVAL_MS	(15*60*1000ul)	// how often to  check if transport is available (already set as default)
 #define MY_TRANSPORT_TIMEOUT_EXT_FAILURE_STATE	(5*	60*1000ul)	//  how often to reconnect if no transport
-//#define MY_REPEATER_FEATURE									// set as Repeater
+#define MY_REPEATER_FEATURE										// set as Repeater
 
 #define REPORT_TIME			(2*60) 			// report sensors every X seconds
 #define FORCE_REPORT		15 				// force report ALL every X cycles
