@@ -5,7 +5,7 @@ This Arduino ProMini (5V) based project is a [MySensors](https://www.mysensors.o
 
 ## Features
 - Modes : power on, power off, reboot, firmware upgrade (power on/off 4 times)
-- Prevents powering off/ while currently rebooting / firmware upgrading
+- Prevents powering off while currently rebooting or firmware upgrading
 - Senses the room temperature using a DS18B20
 - Large OneWire bus to optionally sense temperatures of nearby devices (ie: computers, switches, routers, etc...)
 
@@ -18,6 +18,7 @@ This Arduino ProMini (5V) based project is a [MySensors](https://www.mysensors.o
 
 ## Schematic
 *Due to the limited Fritzing relay part used, the Relay output is not represented here, please refer to the above wiring image.*
+
 ![schematic](images/schematic.png)
 
 
@@ -25,6 +26,8 @@ This Arduino ProMini (5V) based project is a [MySensors](https://www.mysensors.o
 *I've used the excellent [sundberg84's PCB](https://www.openhardware.io/view/4/EasyNewbie-PCB-for-MySensors)  which really eases the whole wiring.*
 
 ![PCB](images/img_pcb.jpg)
+
+![PCB](images/img_box.jpg)
 
 
 ## License
