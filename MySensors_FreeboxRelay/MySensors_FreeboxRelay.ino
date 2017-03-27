@@ -25,11 +25,11 @@
 #define MY_NODE_ID 		161
 
 //https://forum.mysensors.org/topic/5778/mys-library-startup-control-after-onregistration/7
-#define MY_TRANSPORT_WAIT_READY_MS				(	5*1000ul)		// how long to wait for transport ready at boot
-#define MY_TRANSPORT_SANITY_CHECK									// check if transport is available
-#define MY_TRANSPORT_SANITY_CHECK_INTERVAL_MS	(15*60*1000ul)		// how often to  check if transport is available (already set as default)
+#define MY_TRANSPORT_WAIT_READY_MS				(	5*1000ul)	// how long to wait for transport ready at boot
+#define MY_TRANSPORT_SANITY_CHECK								// check if transport is available
+#define MY_TRANSPORT_SANITY_CHECK_INTERVAL_MS	(15*60*1000ul)	// how often to  check if transport is available (already set as default)
 #define MY_TRANSPORT_TIMEOUT_EXT_FAILURE_STATE	(5*	60*1000ul)	//  how often to reconnect if no transport
-//#define MY_REPEATER_FEATURE										// set as Repeater
+//#define MY_REPEATER_FEATURE									// set as Repeater
 
 #define REPORT_TIME			(2*60) 			// report sensors every X seconds
 #define FORCE_REPORT		10 				// force report ALL every X cycles
@@ -40,8 +40,8 @@
 #define FBX_DUR_ON			(1500)			// duration for relay ON
 #define FBX_DUR_OFF			(500)			// duration for relay OFF
 
-#define RELAY_ON			true				// polarity when relay is in NC position
-#define RELAY_OFF			false				// polarity when relay is in NO position
+#define RELAY_ON			true			// polarity when relay is in NC position
+#define RELAY_OFF			false			// polarity when relay is in NO position
 
 #define CHILD_ID_RELAY		0
 #define CHILD_ID_TEMP		1
@@ -109,11 +109,11 @@ void before() {
 	DEBUG_PRINTLN("");
 	DEBUG_PRINTLN("+++++Before START+++++");
 
-	// Setup Pins -----------------------
+	// Setup Pins ......................
 	pinMode(PIN_RELAY,	OUTPUT);
 	digitalWriteFast(PIN_RELAY, RELAY_ON);
 
-	//dallas begin
+	// dallas begin ......................
 	owTempBus.begin();
 	sensors_count=owTempBus.getDeviceCount();
 
@@ -122,6 +122,7 @@ void before() {
 	DEBUG_PRINTLN("+++++Before END  +++++");
 	DEBUG_PRINTLN("");
 }
+
 
 // --------------------------------------------------------------------
 void setup() {
@@ -137,7 +138,8 @@ void loop() {
 	SendInitialtMsg();
 
 	if(init_msg_sent){
-		//report temperatures
+
+		//report temperatures ......................
 		if( (long) ( millis() - next_report)  >= 0 ){
 			next_report +=  (long) REPORT_TIME * 1000 ;
 			cycles_count++;
@@ -161,7 +163,8 @@ void loop() {
 			force_report=false;
 			//DEBUG_PRINTLN("");
 		}
-		//reset mode when done
+
+		//reset mode when done ......................
 		if( ( (long) ( millis() - next_reboot)  >= 0) && current_mode > 1 ){
 			DEBUG_PRINTLN("# Reporting End of Locked time: back to mode 1 ###########");
 			reportsMode(1);
@@ -197,7 +200,7 @@ void presentation(){
 
 	present(CHILD_ID_RELAY,		S_DIMMER);
 
-	// temperatures sensors
+	// temperatures sensors ......................
 	for (int i = 0; i < NUM_SENSORS_USED; i++) {
 		present(CHILD_ID_TEMP + i,		S_TEMP);
 	}
@@ -245,6 +248,7 @@ void switchMode(byte mode){
 // --------------------------------------------------------------------
 boolean freeboxReboot(byte count=1, unsigned long mask=0){
 	unsigned long time_remaining=0;
+
 	//http://playground.arduino.cc/Code/TimingRollover
 	if( (long) ( millis() - next_reboot)  >= 0 ){
 		next_reboot += millis() + mask ;
@@ -267,11 +271,13 @@ boolean freeboxReboot(byte count=1, unsigned long mask=0){
 
 	for (int i = 0; i < count; i++) {
 		DEBUG_PRINT(i+1);
-		//set OFF
+
+		//set OFF ......................
 		digitalWrite(PIN_RELAY, RELAY_OFF);
 		wait(FBX_DUR_OFF);
 		DEBUG_PRINT(". ");
-		//sef ON
+
+		//sef ON ......................
 		digitalWrite(PIN_RELAY, RELAY_ON);
 		if(count > 1){
 			wait(FBX_DUR_ON);
@@ -332,7 +338,7 @@ void reportsTemperatures(){
 	owTempBus.requestTemperatures();
 	wait( owTempBus.millisToWaitForConversion(owTempBus.getResolution()) +5 ); // make sure we get the latest temps
 
-	// temperatures sensors
+	// temperatures sensors ......................
 	for (byte i = 0; i < NUM_SENSORS_USED; i++) {
 
 		DEBUG_PRINT("# - Sensor ");
