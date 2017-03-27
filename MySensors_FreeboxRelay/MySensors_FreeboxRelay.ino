@@ -32,7 +32,7 @@
 //#define MY_REPEATER_FEATURE									// set as Repeater
 
 #define REPORT_TIME			(2*60) 			// report sensors every X seconds
-#define FORCE_REPORT		10 				// force report ALL every X cycles
+#define FORCE_REPORT		15 				// force report ALL every X cycles
 
 #define FBX_TIME_REBOOT		(40+60)			// prevent another reboot command before this time (seconds) elapsed
 #define FBX_TIME_FIRMWARE	(10*60)			// prevent another firmware command before this time (seconds) elapsed
@@ -146,6 +146,8 @@ void loop() {
 
 			DEBUG_PRINT("### (");
 			DEBUG_PRINT(cycles_count);
+			DEBUG_PRINT("/");
+			DEBUG_PRINT(FORCE_REPORT);
 			DEBUG_PRINT(") ");
 
 			if(cycles_count >= FORCE_REPORT ){
