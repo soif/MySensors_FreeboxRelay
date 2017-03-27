@@ -181,6 +181,10 @@ void SendInitialtMsg(){
 	   	init_msg_sent = true;
 		DEBUG_PRINTLN("");
 		DEBUG_PRINTLN("# Transport is Ready");
+
+		// we start as ON, so report it to gateway
+		reportsMode(1);
+
 		DEBUG_PRINTLN("");
    	}
 }
@@ -222,23 +226,20 @@ void switchMode(byte mode){
 	DEBUG_PRINT("# Switching mode : ");
 	DEBUG_PRINTLN(mode);
 
-	boolean ok;
 	if(mode == 0){
-		ok=freeboxOff();
+		freeboxOff();
 	}
 	else if(mode == 1){
-		ok=freeboxOn();
+		freeboxOn();
 	}
 	else if(mode == 2){
-		ok=freeboxRebootOne();
+		freeboxRebootOne();
 	}
 	else if(mode == 3){
-		ok=freeboxFirmware();
+		freeboxFirmware();
 	}
 
-	if(ok){
-		reportsMode(mode);
-	}
+	reportsMode(current_mode);
 }
 
 // --------------------------------------------------------------------
