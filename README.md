@@ -1,25 +1,30 @@
-# MySensors Freebox Relay (WORK IN PROGRESS)
+# MySensors Freebox Relay
 
 This Arduino ProMini (5V) based project is a [MySensors](https://www.mysensors.org/)  node which controls the power supply of a Freebox (Modem for FREE, a French ISP) using a relay, in order to be able to remotely power it off, reboot it and/or perform a firmware upgrade.
 
 
 ## Features
 - Modes : power on, power off, reboot, firmware upgrade (power on/off 4 times)
-- prevents powering off/ while currently rebooting / firmware upgrading
-- Sense the room temperature using a DS18B20
-- Large OneWire bus to optionally sense temperatures of nearby devices (ie computers, switches, router, etc... )
-
-
-## Schematic
-![schematic](images/schematic.png)
+- Prevents powering off/ while currently rebooting / firmware upgrading
+- Senses the room temperature using a DS18B20
+- Large OneWire bus to optionally sense temperatures of nearby devices (ie computers, switches, routers, etc... )
 
 
 ## Wiring
+*The radio wiring is not represented here. Refer to [this MySensor page](https://www.mysensors.org/build/connect_radio).*
+
 ![wiring](images/wiring.png)
 
+
+## Schematic
+*Due to the limited Fritzing relay part used, the Relay output is not represented here, please refer to the above wiring image.*
+![schematic](images/schematic.png)
+
+
 ## Images
-![Box](images/img_box.jpg)
-![OpenBox](images/img_open.jpg)
+*I've used the excellent [sundberg84's PCB](https://www.openhardware.io/view/4/EasyNewbie-PCB-for-MySensors)  which really eases the whole wiring.*
+
+![PCB](images/img_pcb.jpg)
 
 
 ## License
