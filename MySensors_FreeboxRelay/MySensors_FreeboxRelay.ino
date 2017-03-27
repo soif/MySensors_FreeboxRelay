@@ -31,20 +31,20 @@
 #define MY_TRANSPORT_TIMEOUT_EXT_FAILURE_STATE	(5*	60*1000ul)	//  how often to reconnect if no transport
 //#define MY_REPEATER_FEATURE										// set as Repeater
 
-#define REPORT_TIME			(2*60) 				// report sensors every X seconds
+#define REPORT_TIME			(2*60) 			// report sensors every X seconds
 #define FORCE_REPORT		10 				// force report ALL every X cycles
 
-#define FBX_TIME_REBOOT		(40+60)		// prevent another reboot command before this time (seconds) elapsed
-#define FBX_TIME_FIRMWARE	(10*60)		// prevent another firmware command before this time (seconds) elapsed
+#define FBX_TIME_REBOOT		(40+60)			// prevent another reboot command before this time (seconds) elapsed
+#define FBX_TIME_FIRMWARE	(10*60)			// prevent another firmware command before this time (seconds) elapsed
 
-#define FBX_DUR_ON		(1500)			// duration for relay ON
-#define FBX_DUR_OFF		(500)			// duration for relay OFF
+#define FBX_DUR_ON			(1500)			// duration for relay ON
+#define FBX_DUR_OFF			(500)			// duration for relay OFF
 
-#define RELAY_ON		true				// polarity when relay is in NC position
-#define RELAY_OFF		false				// polarity when relay is in NO position
+#define RELAY_ON			true				// polarity when relay is in NC position
+#define RELAY_OFF			false				// polarity when relay is in NO position
 
-#define CHILD_ID_RELAY	0
-#define CHILD_ID_TEMP	1
+#define CHILD_ID_RELAY		0
+#define CHILD_ID_TEMP		1
 
 
 // includes ####################################################################
