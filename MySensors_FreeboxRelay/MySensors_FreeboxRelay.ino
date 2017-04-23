@@ -34,11 +34,11 @@
 #define REPORT_TIME			(2*60) 			// report sensors every X seconds
 #define FORCE_REPORT		15 				// force report ALL every X cycles
 
-#define FBX_TIME_REBOOT		(40+60)			// prevent another reboot command before this time (seconds) elapsed
-#define FBX_TIME_FIRMWARE	(10*60)			// prevent another firmware command before this time (seconds) elapsed
+#define FBX_TIME_REBOOT		(100)			// prevent another reboot command before this time (seconds) elapsed
+#define FBX_TIME_FIRMWARE	(600)			// prevent another firmware command before this time (seconds) elapsed
 
 #define FBX_DUR_ON			(1500)			// duration for relay ON
-#define FBX_DUR_OFF			(500)			// duration for relay OFF
+#define FBX_DUR_OFF			(600)			// duration for relay OFF
 
 #define RELAY_ON			true			// polarity when relay is in NC position
 #define RELAY_OFF			false			// polarity when relay is in NO position
@@ -159,7 +159,7 @@ void loop() {
 			else{
 				DEBUG_PRINT("Reporting changed ");
 			}
-			DEBUG_PRINTLN("#############################");
+			DEBUG_PRINTLN("#######################################");
 
 			reportsTemperatures();
 			force_report=false;
@@ -168,7 +168,7 @@ void loop() {
 
 		//reset mode when done ......................
 		if( ( (long) ( millis() - next_reboot)  >= 0) && current_mode > 1 ){
-			DEBUG_PRINTLN("# Reporting End of Locked time: back to mode 1 ###########");
+			DEBUG_PRINTLN("# - Reporting End of Locked time: back to mode 1 ***");
 			reportsMode(1);
 			current_mode=1;
 			DEBUG_PRINTLN("");
@@ -213,13 +213,13 @@ void presentation(){
 // --------------------------------------------------------------------
 void receive(const MyMessage &message){
 	if (message.isAck() ) {
-		DEBUG_PRINTLN(" <-- ACK from gateway IGNORED !");
+		DEBUG_PRINTLN("# <-- ACK from gateway IGNORED !");
 		DEBUG_PRINTLN("");
 		return;
 	}
 
 	if (message.type == V_PERCENTAGE) {
-		DEBUG_PRINT("#  <-- Receiving mode : ");
+		DEBUG_PRINT("# <-- Receiving mode : ");
 		DEBUG_PRINTLN(message.getByte());
 		switchMode(message.getByte());
 		DEBUG_PRINTLN("");
@@ -228,7 +228,7 @@ void receive(const MyMessage &message){
 
 // --------------------------------------------------------------------
 void switchMode(byte mode){
-	DEBUG_PRINT("# Switching mode : ");
+	DEBUG_PRINT("##### Switching mode : ");
 	DEBUG_PRINTLN(mode);
 
 	if(mode == 0){
@@ -285,7 +285,7 @@ boolean freeboxReboot(byte count=1, unsigned long mask=0){
 			wait(FBX_DUR_ON);
 		}
 	}
-	DEBUG_PRINTLN("  REBOOTED!");
+	DEBUG_PRINTLN("  REBOOTED !!!!!!!!!!");
 	return true;
 }
 
@@ -307,9 +307,11 @@ boolean freeboxOff(){
 
 // --------------------------------------------------------------------
 boolean freeboxOn(){
-	current_mode = 1;
-	digitalWrite(PIN_RELAY, RELAY_ON);
-	return true;
+	if(current_mode == 0){
+		current_mode = 1;
+		digitalWrite(PIN_RELAY, RELAY_ON);
+		return true;
+	}
 }
 
 // --------------------------------------------------------------------
