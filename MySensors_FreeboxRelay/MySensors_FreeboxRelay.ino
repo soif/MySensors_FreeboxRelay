@@ -18,7 +18,7 @@
 
 // Define ######################################################################
 #define INFO_NAME "FreeboxRelay"
-#define INFO_VERS "2.11.00"
+#define INFO_VERS "2.11.01"
 
 // MySensors
 #define MY_RADIO_NRF24
@@ -253,7 +253,7 @@ boolean freeboxReboot(byte count=1, unsigned long mask=0){
 
 	//http://playground.arduino.cc/Code/TimingRollover
 	if( (long) ( millis() - next_reboot)  >= 0 ){
-		next_reboot += millis() + mask ;
+		next_reboot = millis() + mask ;
 	}
 	else{
 		time_remaining=( next_reboot - millis() ) /1000;
